@@ -1,0 +1,12 @@
+apiVersion: utilize.incentro.com/v1alpha1
+kind: UtilizeSet
+metadata:
+  name: example-utilizeset
+spec:
+  # Add fields here
+  replicas: 3
+  # filltocapacity: 80
+  # image: fold@home
+  # initscript: echo 'hello'
+  # cpuperpod: 1
+  # memperpod: 1
