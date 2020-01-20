@@ -143,14 +143,13 @@ func (r *ReconcileUtilizeSet) Reconcile(request reconcile.Request) (reconcile.Re
 	/*
 		TODO: exclude pods from this operator
 		TODO: Iterate over all nodes
-		TODO: {"error":"nodes is forbidden: User \"system:serviceaccount:default:kube-utilize-operator\" cannot list resource \"nodes\" in API group \"\" at the cluster scope","msg":"Error while reading node list data: %v","Request.Namespace":"default","Request.Name":"example-utilizeset","level":"error","logger":…
 	*/
 	nodeList, err := cluster.Nodes().List(metav1.ListOptions{})
 	if err == nil {
 		if len(nodeList.Items) > 0 {
 			node := &nodeList.Items[0]
 			totalMemAvail = node.Status.Allocatable.Memory().Value()
-			reqLogger.Info("Current allocatable memory: ", totalMemAvail)
+			reqLogger.Info("Current allocatable memory", "allocatable", totalMemAvail)
 		} else {
 			reqLogger.Error(err, "Unable to read node list")
 		}
