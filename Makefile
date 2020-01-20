@@ -1,5 +1,5 @@
 image = gcr.io/resolute-cat-146114/kube-utilize-operator
-version = v5
+version = v7
 
 cc:
 	kubectl config current-context

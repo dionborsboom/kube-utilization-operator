@@ -137,13 +137,20 @@ func (r *ReconcileUtilizeSet) Reconcile(request reconcile.Request) (reconcile.Re
         reqLogger.Error(err, "Could not create clientset for kube api")
 	}
 	cluster := clientset.CoreV1()
-	var totalMemAvail := []string{}
-	// retrieve total cluster memory
+	var totalMemAvail int64
+
+	// 	retrieve allocatable cluster memory
+	/*
+		TODO: exclude pods from this operator
+		TODO: Iterate over all nodes
+		TODO: {"error":"nodes is forbidden: User \"system:serviceaccount:default:kube-utilize-operator\" cannot list resource \"nodes\" in API group \"\" at the cluster scope","msg":"Error while reading node list data: %v","Request.Namespace":"default","Request.Name":"example-utilizeset","level":"error","logger":…
+	*/
 	nodeList, err := cluster.Nodes().List(metav1.ListOptions{})
 	if err == nil {
-	if len(nodeList.Items) > 0 {
+		if len(nodeList.Items) > 0 {
 			node := &nodeList.Items[0]
-			totalMemAvail = append(node.Status.Allocatable.Memory)
+			totalMemAvail = node.Status.Allocatable.Memory().Value()
+			reqLogger.Info("Current allocatable memory: ", totalMemAvail)
 		} else {
 			reqLogger.Error(err, "Unable to read node list")
 		}
@@ -152,6 +159,7 @@ func (r *ReconcileUtilizeSet) Reconcile(request reconcile.Request) (reconcile.Re
 	}
 
 	reqLogger.Info("Checking utilizeset", "expected replicas", utilizeSet.Spec.Replicas, "Pod.Names", existingPodNames)
+	
 	// Update the status if necessary
 	status := utilizev1alpha1.UtilizeSetStatus{
 		Replicas: int32(len(existingPodNames)),

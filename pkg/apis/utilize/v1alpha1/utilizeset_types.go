@@ -27,9 +27,9 @@ type UtilizeSetStatus struct {
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
 	Replicas int32 `json:"replicas"`
 	PodNames []string `json:"podNames"`
-	Capacity int `json:"capacity"`
-	TotalCPU int `json: "totalCPU"`
-	TotalMem []string `json: "totalMem"`
+	Capacity int64 `json:"capacity"`
+	TotalCPU int64 `json: "totalCPU"`
+	TotalMem int64 `json: "totalMem"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -93,11 +93,6 @@ func (in *UtilizeSetStatus) DeepCopyInto(out *UtilizeSetStatus) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	if in.TotalMem != nil {
-		in, out := &in.TotalMem, &out.TotalMem
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	}
 	return
 }
 
