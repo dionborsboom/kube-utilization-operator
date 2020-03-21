@@ -79,6 +79,57 @@ type ReconcileUtilizeSet struct {
 	scheme *runtime.Scheme
 }
 
+// This function will return all available resources within the cluster
+func getAvailableResources(nodeNonTerminatedPodsList *corev1.PodList, nodeList *corev1.NodeList) {
+	// get total resources
+	var totalMemAvail int64
+	var totalCPUAvail int64
+	if len(nodeList.Items) > 0 {
+		valid := true
+		i := 0
+		for valid {
+			node := &nodeList.Items[i]
+
+			// total available resources
+			// TODO: Move this to separate func
+			allocatable := node.Status.Allocatable
+			memAvail := allocatable.Memory().Value()
+			cpuAvail := allocatable.Cpu().MilliValue()
+			// log.Info("Allocatable resources for Node", "Node", node, "Memory", (memAvail/1024)/1024, "CPU", cpuAvail)
+			totalMemAvail = totalMemAvail + memAvail
+			totalCPUAvail = totalCPUAvail + cpuAvail
+
+			if i+1 == len(nodeList.Items) {
+				valid = false
+			}
+			i++
+		}
+		log.Info("Total allocatable resources", "Memory", (totalMemAvail/1024)/1024, "CPU", totalCPUAvail)
+	} else {
+		log.Info("Unable to read nodes", "Nodes", len(nodeList.Items))
+	}
+	
+	// get used resources
+	log.Info("Non-terminated Pods","Size", len(nodeNonTerminatedPodsList.Items))
+	
+	// for each pod get total limit cpu & mem
+	for _, pod := range nodeNonTerminatedPodsList.Items {
+		// For each container get resource limits
+		containerList := pod.Spec.Containers
+		for _, container := range containerList {
+			resources := container.Resources.Requests
+			log.Info("Request resources for pod", "Pod labels", pod.ObjectMeta.Labels)
+			log.Info("Container" ,"Container image", container.Image)
+			log.Info("Resources", "Resource requests", resources)
+		}
+	}
+
+	// calc available resources - used resources
+
+}
+
+// TODO: Get total usable resources
+
 // Reconcile reads that state of the cluster for a UtilizeSet object and makes changes based on the state read
 // and what is in the UtilizeSet.Spec
 // TODO(user): Modify this Reconcile function to implement your Controller logic.  This example creates
@@ -137,25 +188,25 @@ func (r *ReconcileUtilizeSet) Reconcile(request reconcile.Request) (reconcile.Re
         reqLogger.Error(err, "Could not create clientset for kube api")
 	}
 	cluster := clientset.CoreV1()
-	var totalMemAvail int64
-
-	// 	retrieve allocatable cluster memory
+	// 	retrieve allocatable cluster resources
 	/*
 		TODO: exclude pods from this operator
 		TODO: Iterate over all nodes
+		TODO: make sure unschedulable is false
+		TODO: make all namespaces
 	*/
-	nodeList, err := cluster.Nodes().List(metav1.ListOptions{})
-	if err == nil {
-		if len(nodeList.Items) > 0 {
-			node := &nodeList.Items[0]
-			totalMemAvail = node.Status.Allocatable.Memory().Value()
-			reqLogger.Info("Current allocatable memory", "allocatable", totalMemAvail)
-		} else {
-			reqLogger.Error(err, "Unable to read node list")
-		}
+	namespace := "default"
+	nodeList, nodeListErr := cluster.Nodes().List(metav1.ListOptions{})
+	nodeNonTerminatedPodsList, podListErr := cluster.Pods(namespace).List(metav1.ListOptions{})
+	if nodeListErr == nil || podListErr == nil {
+		reqLogger.Error(err, "Error while reading node & pod list data: %v")
 	} else {
-		reqLogger.Error(err, "Error while reading node list data: %v")
+		getAvailableResources(nodeNonTerminatedPodsList, nodeList)
 	}
+	
+	// TODO: calculate the total desired pods based on
+	// resources / available resouces
+	
 
 	reqLogger.Info("Checking utilizeset", "expected replicas", utilizeSet.Spec.Replicas, "Pod.Names", existingPodNames)
 	
@@ -163,7 +214,7 @@ func (r *ReconcileUtilizeSet) Reconcile(request reconcile.Request) (reconcile.Re
 	status := utilizev1alpha1.UtilizeSetStatus{
 		Replicas: int32(len(existingPodNames)),
 		PodNames: existingPodNames,
-		TotalMem: totalMemAvail,
+	//	TotalMem: totalMemAvail,
 	}
 	if !reflect.DeepEqual(utilizeSet.Status, status) {
 		utilizeSet.Status = status

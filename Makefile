@@ -1,5 +1,5 @@
-image = gcr.io/resolute-cat-146114/kube-utilize-operator
-version = v7
+image = gcr.io/incentro-oss/kube-utilize-operator
+version = alpha1-7
 
 cc:
 	kubectl config current-context
@@ -7,7 +7,6 @@ cc:
 b:
 	operator-sdk generate k8s
 	operator-sdk build $(image):$(version)
-	sed -i 's|REPLACE_IMAGE|$(image):$(version)|g' deploy/operator.yaml
 
 p:
 	docker push $(image):$(version)
@@ -25,7 +24,10 @@ do:
 	kubectl apply -f deploy/role_binding.yaml
 	kubectl apply -f deploy/role.yaml
 	kubectl apply -f deploy/service_account.yaml
+	kubectl apply -f deploy/cluster_role.yaml
+	kubectl apply -f deploy/cluster_role_binding.yaml
 	kubectl apply -f deploy/crds/utilize.incentro.com_utilizesets_crd.yaml
+	sed -i 's|REPLACE_IMAGE|$(image):$(version)|g' deploy/operator.yaml
 	kubectl apply -f deploy/operator.yaml
 	sed -i 's|$(image):$(version)|REPLACE_IMAGE|g' deploy/operator.yaml
 
